@@ -106,15 +106,24 @@
           </div>
           <div class="form-group">
             <label>Ingredientes *</label>
-            <textarea id="r-ingredients" required placeholder="Liste os ingredientes (um por linha)"></textarea>
+            <div class="item-list-editor">
+              <div class="item-rows" id="ingredients-rows"></div>
+              <button type="button" class="btn btn-sm btn-add-item" data-editor="ingredients">+ Ingrediente</button>
+            </div>
+            <textarea id="r-ingredients" style="display:none" required></textarea>
             <div class="error-msg"></div>
-            <div class="helper">Separe cada ingrediente em uma linha</div>
           </div>
           <div class="form-group">
             <label>Modo de Preparo *</label>
-            <textarea id="r-instructions" required placeholder="Passo a passo do preparo"></textarea>
+            <div class="item-list-editor">
+              <div class="item-rows" id="instructions-rows"></div>
+              <div class="editor-toolbar">
+                <button type="button" class="btn btn-sm btn-add-item" data-editor="instructions">+ Passo</button>
+                <button type="button" class="btn btn-sm btn-add-section" data-editor="instructions"># Seção</button>
+              </div>
+            </div>
+            <textarea id="r-instructions" style="display:none" required></textarea>
             <div class="error-msg"></div>
-            <div class="helper">Descreva o passo a passo</div>
           </div>
           <div class="form-group">
             <label>Compartilhar em grupo</label>

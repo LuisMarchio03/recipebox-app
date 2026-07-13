@@ -100,6 +100,131 @@ function autoResize(el) {
   el.style.height = el.scrollHeight + 'px';
 }
 
+/* ===== Item List Editor ===== */
+function addItemRow(containerId, value = '') {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const isInstruction = containerId === 'instructions-rows';
+  const isIngredient = containerId === 'ingredients-rows';
+
+  const row = document.createElement('div');
+  row.className = 'item-row';
+
+  function makeMoveButtons() {
+    const wrap = document.createElement('span');
+    wrap.className = 'move-btns';
+    wrap.innerHTML = `
+      <button type="button" class="btn-move-up" tabindex="-1" title="Mover pra cima">▲</button>
+      <button type="button" class="btn-move-down" tabindex="-1" title="Mover pra baixo">▼</button>
+    `;
+    return wrap;
+  }
+
+  function attachMoveHandlers(wrap, r) {
+    wrap.querySelector('.btn-move-up').addEventListener('click', () => moveRow(r, -1));
+    wrap.querySelector('.btn-move-down').addEventListener('click', () => moveRow(r, 1));
+  }
+
+  if (isIngredient) {
+    const parts = value.split(' | ');
+    const qty = parts.length > 1 ? parts[0] : '';
+    const name = parts.length > 1 ? parts.slice(1).join(' | ') : value;
+    const moveWrap = makeMoveButtons();
+    row.innerHTML = `
+      <input type="text" class="item-qty" value="${escapeHtml(qty)}" placeholder="Ex: 2 xícaras">
+      <input type="text" class="item-input" value="${escapeHtml(name)}" placeholder="Ex: farinha de trigo">
+      <button type="button" class="btn-remove-item" tabindex="-1" title="Remover">✕</button>
+    `;
+    row.insertBefore(moveWrap, row.firstChild);
+    attachMoveHandlers(moveWrap, row);
+    row.querySelector('.btn-remove-item').addEventListener('click', () => row.remove());
+    container.appendChild(row);
+    if (value === '') row.querySelector('.item-qty').focus();
+  } else if (isInstruction && value.startsWith('# ')) {
+    row.classList.add('section-row');
+    const title = value.slice(2);
+    const moveWrap = makeMoveButtons();
+    row.innerHTML = `
+      <span class="section-marker">#</span>
+      <input type="text" class="item-input section-input" value="${escapeHtml(title)}" placeholder="Nome da seção (ex: Creme Branco)">
+      <button type="button" class="btn-remove-item" tabindex="-1" title="Remover">✕</button>
+    `;
+    row.insertBefore(moveWrap, row.firstChild);
+    attachMoveHandlers(moveWrap, row);
+    row.querySelector('.btn-remove-item').addEventListener('click', () => row.remove());
+    container.appendChild(row);
+    if (value === '# ') row.querySelector('.section-input').focus();
+  } else {
+    const moveWrap = makeMoveButtons();
+    row.innerHTML = `
+      <input type="text" class="item-input" value="${escapeHtml(value)}" placeholder="${isInstruction ? 'Ex: Misture os ingredientes secos...' : 'Ex: 2 xícaras de farinha de trigo'}">
+      <button type="button" class="btn-remove-item" tabindex="-1" title="Remover">✕</button>
+    `;
+    row.insertBefore(moveWrap, row.firstChild);
+    attachMoveHandlers(moveWrap, row);
+    row.querySelector('.btn-remove-item').addEventListener('click', () => {
+      row.remove();
+    });
+    container.appendChild(row);
+    if (value === '') row.querySelector('.item-input').focus();
+  }
+}
+
+function initItemEditor(containerId, textareaId) {
+  const container = document.getElementById(containerId);
+  const textarea = document.getElementById(textareaId);
+  if (!container || !textarea) return;
+  container.innerHTML = '';
+  const values = textarea.value.split('\n').filter(v => v.trim());
+  if (values.length === 0) values.push('');
+  values.forEach(v => addItemRow(containerId, v));
+}
+
+function collectItemValues(containerId) {
+  const isIngredient = containerId === 'ingredients-rows';
+  if (isIngredient) {
+    const rows = document.querySelectorAll(`#${containerId} .item-row`);
+    return Array.from(rows).map(row => {
+      const qty = row.querySelector('.item-qty')?.value.trim() || '';
+      const name = row.querySelector('.item-input')?.value.trim() || '';
+      if (!name) return '';
+      return qty ? `${qty} | ${name}` : name;
+    }).filter(v => v);
+  }
+  const rows = document.querySelectorAll(`#${containerId} .item-row`);
+  return Array.from(rows).map(row => {
+    const isSection = row.classList.contains('section-row');
+    const input = row.querySelector('.item-input');
+    const val = input?.value.trim() || '';
+    if (!val) return '';
+    return isSection ? `# ${val}` : val;
+  }).filter(v => v);
+}
+
+function moveRow(row, direction) {
+  const container = row.parentNode;
+  if (direction === -1 && row.previousElementSibling) {
+    container.insertBefore(row, row.previousElementSibling);
+  } else if (direction === 1 && row.nextElementSibling) {
+    container.insertBefore(row.nextElementSibling, row);
+  }
+}
+
+/* ===== Add Item Button Events ===== */
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn-add-item');
+  if (btn) {
+    const editor = btn.dataset.editor;
+    addItemRow(`${editor}-rows`, '');
+    return;
+  }
+  const sectionBtn = e.target.closest('.btn-add-section');
+  if (sectionBtn) {
+    const editor = sectionBtn.dataset.editor;
+    addItemRow(`${editor}-rows`, '# ');
+  }
+});
+
 /* ===== Difficulty Helpers ===== */
 function diffStars(diff) {
   const levels = { 'Fácil': 1, 'Médio': 2, 'Difícil': 3 };
@@ -264,6 +389,56 @@ async function showRecipeDetail(id) {
     const r = await API.getRecipe(id);
     const isOwner = r.user_id === appState.user.id;
 
+    const ingItems = r.ingredients.split('\n').filter(l => l.trim());
+    const instLines = r.instructions.split('\n').filter(l => l.trim());
+
+    function renderIngredient(line) {
+      const idx = line.indexOf(' | ');
+      if (idx > 0) {
+        const qty = escapeHtml(line.slice(0, idx));
+        const name = escapeHtml(line.slice(idx + 3));
+        return `<span class="ing-qty">${qty}</span> ${name}`;
+      }
+      return escapeHtml(line);
+    }
+
+    // Separate section headers from step lines
+    const instSections = [];
+    let currentSection = { title: null, steps: [] };
+    instLines.forEach(line => {
+      if (line.startsWith('# ')) {
+        if (currentSection.steps.length || currentSection.title) {
+          instSections.push(currentSection);
+        }
+        currentSection = { title: line.slice(2).trim(), steps: [] };
+      } else {
+        currentSection.steps.push(line);
+      }
+    });
+    if (currentSection.steps.length || currentSection.title) {
+      instSections.push(currentSection);
+    }
+
+    const progressKey = `recipe-progress-${r.id}`;
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(progressKey) || '{}'); } catch {}
+
+    function checkedAttr(prefix, idx) {
+      return saved[`${prefix}-${idx}`] ? 'checked' : '';
+    }
+
+    // Count total steps (non-section lines)
+    let stepCount = 0;
+    let checkedCount = 0;
+    instLines.forEach(line => {
+      if (!line.startsWith('# ')) {
+        if (saved[`inst-${stepCount}`]) checkedCount++;
+        stepCount++;
+      }
+    });
+    const totalSteps = stepCount;
+    const pct = totalSteps ? Math.round((checkedCount / totalSteps) * 100) : 0;
+
     $('#recipe-detail-content').innerHTML = `
       <h2>${escapeHtml(r.title)}</h2>
       ${r.description ? `<p class="description">${escapeHtml(r.description)}</p>` : ''}
@@ -282,10 +457,47 @@ async function showRecipeDetail(id) {
       </div>
 
       <div class="section-title">📝 Ingredientes</div>
-      <div class="ingredients">${escapeHtml(r.ingredients)}</div>
+      <div class="checklist" data-recipe="${r.id}" data-type="ingredients">
+        ${ingItems.map((item, i) => `
+          <label class="checklist-item ${checkedAttr('ing', i) ? 'checked' : ''}">
+            <input type="checkbox" data-idx="${i}" data-type="ing" ${checkedAttr('ing', i)}>
+            <span>${renderIngredient(item)}</span>
+          </label>
+        `).join('')}
+      </div>
 
       <div class="section-title">👩‍🍳 Modo de Preparo</div>
-      <div class="instructions">${escapeHtml(r.instructions)}</div>
+      ${totalSteps > 0 ? `
+      <div class="cooking-tools">
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <span class="progress-text">${checkedCount}/${totalSteps} passos</span>
+        <button class="btn-reset" onclick="resetProgress('${r.id}')">↺ Resetar</button>
+      </div>
+      ` : ''}
+      <div class="checklist" data-recipe="${r.id}" data-type="instructions">
+        ${(() => {
+          let globalStepIdx = 0;
+          let html = '';
+          instSections.forEach((sec, si) => {
+            if (sec.title) {
+              html += `<div class="checklist-section">${escapeHtml(sec.title)}</div>`;
+            }
+            sec.steps.forEach((step, si2) => {
+              const stepNum = si2 + 1;
+              const gIdx = globalStepIdx;
+              html += `
+                <label class="checklist-item ${checkedAttr('inst', gIdx) ? 'checked' : ''}">
+                  <input type="checkbox" data-step-idx="${gIdx}" ${checkedAttr('inst', gIdx)}>
+                  <span class="step-num">${stepNum}.</span>
+                  <span>${escapeHtml(step)}</span>
+                </label>
+              `;
+              globalStepIdx++;
+            });
+          });
+          return html;
+        })()}
+      </div>
 
       <div class="actions">
         ${isOwner ? `
@@ -297,7 +509,43 @@ async function showRecipeDetail(id) {
         <button class="btn btn-secondary btn-sm" onclick="API.downloadWord('${r.id}')">📄 Word</button>
       </div>
     `;
+
+    // Attach checkbox change listeners
+    $('#recipe-detail-content').querySelectorAll('.checklist input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const recipeId = cb.closest('.checklist').dataset.recipe;
+        const checklistType = cb.closest('.checklist').dataset.type;
+        const key = `recipe-progress-${recipeId}`;
+        let data = {};
+        try { data = JSON.parse(localStorage.getItem(key) || '{}'); } catch {}
+        const idx = cb.dataset.stepIdx || cb.dataset.idx;
+        if (checklistType === 'instructions') {
+          data[`inst-${idx}`] = cb.checked;
+        } else {
+          data[`ing-${idx}`] = cb.checked;
+        }
+        localStorage.setItem(key, JSON.stringify(data));
+        cb.closest('.checklist-item').classList.toggle('checked', cb.checked);
+        if (checklistType === 'instructions') {
+          const container = cb.closest('#recipe-detail-content') || $('#recipe-detail-content');
+          const checks = container.querySelectorAll('.checklist[data-type="instructions"] input[type="checkbox"]');
+          const total = checks.length;
+          const done = Array.from(checks).filter(c => c.checked).length;
+          const fill = container.querySelector('.progress-fill');
+          const text = container.querySelector('.progress-text');
+          const pct = total ? Math.round((done / total) * 100) : 0;
+          if (fill) fill.style.width = pct + '%';
+          if (text) text.textContent = `${done}/${total} passos`;
+        }
+      });
+    });
+
   } catch (e) { toast(e.message, 'error'); window.location.hash = 'dashboard'; }
+}
+
+function resetProgress(recipeId) {
+  localStorage.removeItem(`recipe-progress-${recipeId}`);
+  showRecipeDetail(recipeId);
 }
 
 function formatTime(m) { return m ? `${m} min` : '—'; }
@@ -346,26 +594,40 @@ async function showRecipeForm(editId) {
       $('#r-category').value = r.category;
       $('#r-difficulty').value = r.difficulty || 'Médio';
       $('#r-private').checked = !!r.is_private;
-      $('#r-group').value = r.group_id || '';
-      setTimeout(() => { autoResize($('#r-ingredients')); autoResize($('#r-instructions')); }, 50);
+      window._editGroupId = r.group_id || '';
     } catch (e) { toast(e.message, 'error'); window.location.hash = 'dashboard'; }
   } else {
     $('#form-title').textContent = 'Nova Receita';
     $('#form-submit').textContent = 'Criar';
+    $('#r-ingredients').value = '';
+    $('#r-instructions').value = '';
     $('#r-servings').value = 1;
     $('#r-difficulty').value = 'Médio';
+    window._editGroupId = '';
   }
+
+  initItemEditor('ingredients-rows', 'r-ingredients');
+  initItemEditor('instructions-rows', 'r-instructions');
 
   try {
     const groups = await API.getGroups();
     const sel = $('#r-group');
     sel.innerHTML = '<option value="">Nenhum (Receita pessoal)</option>'
       + groups.map(g => `<option value="${g.id}">${escapeHtml(g.name)}</option>`).join('');
+    if (window._editGroupId) {
+      sel.value = window._editGroupId;
+    }
   } catch {}
+  delete window._editGroupId;
 }
 
 $('#recipe-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
+
+  // Sync item editors to hidden textareas
+  $('#r-ingredients').value = collectItemValues('ingredients-rows').join('\n');
+  $('#r-instructions').value = collectItemValues('instructions-rows').join('\n');
+
   if (!validateForm()) return;
 
   const editId = window.location.hash.includes('edit') ? window.location.hash.split('/')[2] : null;
