@@ -11,6 +11,7 @@ const recipeRoutes = require('./routes/recipes');
 const groupRoutes = require('./routes/groups');
 const exportRoutes = require('./routes/export');
 const importRoutes = require('./routes/import');
+const inviteRoutes = require('./routes/invites');
 const { errorHandler, notFoundHandler } = require('./middleware/error');
 
 const DEFAULT_LIMITS = {
@@ -78,6 +79,7 @@ function createApp({ rateLimits = DEFAULT_LIMITS } = {}) {
   app.use('/api/groups', groupRoutes);
   app.use('/api/export', exportRoutes);
   app.use('/api/import', importRoutes);
+  app.use('/api/invites', inviteRoutes);
 
   app.use('/api', notFoundHandler);
 

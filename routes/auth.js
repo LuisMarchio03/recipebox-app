@@ -59,13 +59,18 @@ module.exports = function authRoutes({ loginLimiter, registerLimiter }) {
   }));
 
   router.post('/register', registerLimiter, asyncHandler(async (req, res) => {
-    if (!config.INVITE_CODE) {
-      throw forbidden('O cadastro está desativado neste servidor');
-    }
-
     const { invite_code: inviteCode } = req.body || {};
-    if (!inviteCode || !secretEquals(inviteCode, config.INVITE_CODE)) {
-      throw forbidden('Código de convite inválido');
+    if (!inviteCode) throw forbidden('Código de convite inválido');
+
+    let inviteId = null;
+    const invite = await db.execute({
+      sql: 'SELECT * FROM invites WHERE code = ? AND used_by IS NULL',
+      args: [inviteCode],
+    });
+    if (invite.rows.length > 0) {
+      inviteId = invite.rows[0].id;
+    } else if (inviteCode !== config.INVITE_CODE) {
+      throw forbidden('Código de convite inválido ou já utilizado');
     }
 
     const username = v.username(req.body.username);
@@ -88,6 +93,12 @@ module.exports = function authRoutes({ loginLimiter, registerLimiter }) {
     });
 
     const user = { id, username, name };
+    if (inviteId) {
+      await db.execute({
+        sql: 'UPDATE invites SET used_by = ?, used_at = datetime(\'now\') WHERE id = ?',
+        args: [id, inviteId],
+      });
+    }
     res.status(201).json({ token: signToken(user), user });
   }));
 
@@ -100,9 +111,8 @@ module.exports = function authRoutes({ loginLimiter, registerLimiter }) {
     res.json(result.rows[0]);
   }));
 
-  /** O front usa isso para esconder o link de cadastro quando não há convites. */
   router.get('/config', (req, res) => {
-    res.json({ registration_enabled: Boolean(config.INVITE_CODE) });
+    res.json({ registration_enabled: true });
   });
 
   return router;

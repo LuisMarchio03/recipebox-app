@@ -66,6 +66,15 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_recipes_created ON recipes(created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_members_user ON group_members(user_id)`,
   `CREATE INDEX IF NOT EXISTS idx_members_group ON group_members(group_id)`,
+
+  `CREATE TABLE IF NOT EXISTS invites (
+    id TEXT PRIMARY KEY,
+    code TEXT UNIQUE NOT NULL,
+    created_by TEXT REFERENCES users(id),
+    used_by TEXT REFERENCES users(id),
+    used_at TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  )`,
 ];
 
 async function initDB() {

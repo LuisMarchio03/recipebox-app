@@ -37,9 +37,8 @@
 
       <p id="login-error" class="auth-error" role="alert"></p>
 
-      <p id="login-register-link" class="auth-switch" hidden>
-        Tem um código de convite?
-        <button type="button" class="link-button" data-action="ir-cadastro">Criar conta</button>
+      <p class="auth-switch">
+        <a href="#register" class="link-button">Criar conta com convite</a>
       </p>
     </div>
   </section>
@@ -49,7 +48,7 @@
     <div class="auth-container">
       <div class="logo" aria-hidden="true">🍳</div>
       <h1>Criar conta</h1>
-      <p class="subtitle">Você precisa de um código de convite</p>
+      <p class="subtitle">Digite o código de convite que você recebeu</p>
 
       <form id="register-form" autocomplete="on">
         <label class="sr-only" for="reg-name">Nome completo</label>
@@ -278,6 +277,11 @@
         </form>
       </section>
 
+      <!-- CONVITES -->
+      <section id="page-invites" class="page">
+        <div id="invites-content"></div>
+      </section>
+
       <!-- MODO COZINHA (renderizado pelo JS) -->
       <section id="page-cooking" class="page cooking-page"></section>
 
@@ -291,6 +295,9 @@
   </a>
   <a href="#groups" data-page="groups">
     <span class="nav-icon" aria-hidden="true">👥</span> Grupos
+  </a>
+  <a href="#invites" data-page="invites">
+    <span class="nav-icon" aria-hidden="true">📨</span> Convites
   </a>
 </nav>
 

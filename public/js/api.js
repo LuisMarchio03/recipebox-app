@@ -141,6 +141,12 @@ export const API = {
 
   downloadWord: id => download(`/api/export/word/${id}`),
   downloadGroupWord: groupId => download(`/api/export/word/group/${groupId}`),
+
+  /* ===== Convites ===== */
+
+  getInvites: () => API.request('/api/invites'),
+  createInvite: () => API.request('/api/invites', { method: 'POST' }),
+  revokeInvite: id => API.request(`/api/invites/${id}`, { method: 'DELETE' }),
 };
 
 function invalidateImage(id) {

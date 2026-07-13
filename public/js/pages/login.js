@@ -38,20 +38,16 @@ export function showRegister() {
   showAuthShell('page-register');
   $('#register-error').textContent = '';
   $('#register-form').reset();
+
+  const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+  const token = params.get('token');
+  if (token) {
+    $('#reg-invite').value = token;
+  }
 }
 
 export function renderUserName() {
   $('#user-name').textContent = state.user?.name || '';
-}
-
-/** Esconde o link de cadastro quando o servidor não tem INVITE_CODE configurado. */
-export async function syncRegistrationAvailability() {
-  try {
-    const { registration_enabled: enabled } = await API.authConfig();
-    $('#login-register-link').hidden = !enabled;
-  } catch {
-    $('#login-register-link').hidden = true;
-  }
 }
 
 function bindAuthForm(formSelector, errorSelector, submit) {

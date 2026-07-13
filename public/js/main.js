@@ -5,13 +5,14 @@ import { registerActions, initActionDelegation, toast } from './ui.js';
 
 import {
   initLoginPage, showLogin, showRegister, enterApp,
-  renderUserName, syncRegistrationAvailability, rememberDestination,
+  renderUserName, rememberDestination,
 } from './pages/login.js';
 import { initDashboard, showDashboard } from './pages/dashboard.js';
 import { showRecipeDetail, recipeDetailActions } from './pages/recipe-detail.js';
 import { initRecipeForm, showRecipeForm } from './pages/recipe-form.js';
 import { showCookingMode, leaveCookingMode, cookingActions } from './pages/cooking-mode.js';
 import { initGroups, showGroups, showGroupDetail, showGroupForm, groupActions } from './pages/groups.js';
+import { initInvites, showInvites } from './pages/invites.js';
 
 const $ = selector => document.querySelector(selector);
 
@@ -36,6 +37,7 @@ route('cook/:id', guard(showCookingMode));
 route('groups', guard(showGroups));
 route('groups/new', guard(showGroupForm));
 route('groups/:id', guard(showGroupDetail));
+route('invites', guard(showInvites));
 
 /* ===== Header e navegação ===== */
 
@@ -44,6 +46,7 @@ const TITLES = {
   'groups': 'Grupos',
   'groups/new': 'Novo Grupo',
   'groups/:id': 'Grupo',
+  'invites': 'Convites',
   'recipe/new': 'Nova Receita',
   'recipe/edit/:id': 'Editar Receita',
   'recipe/:id': 'Receita',
@@ -124,8 +127,7 @@ async function boot() {
   initDashboard();
   initRecipeForm();
   initGroups();
-
-  syncRegistrationAvailability();
+  initInvites();
 
   if (API.getToken()) {
     try {

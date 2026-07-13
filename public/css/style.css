@@ -112,6 +112,7 @@ body {
   transition: border-color var(--transition), box-shadow var(--transition);
   background: var(--surface);
   color: var(--text);
+  margin-bottom: 16px;
 }
 .auth-container input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--primary-light); }
 .auth-container button {
@@ -125,12 +126,13 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: background var(--transition), transform var(--transition);
-  margin-top: 6px;
+  margin-top: 12px;
 }
 .auth-container button:hover { background: var(--primary-dark); transform: translateY(-1px); }
 .auth-container button:active { transform: translateY(0); }
 .auth-container button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-.auth-error { color: var(--error); font-size: 13px; margin-top: 12px; min-height: 20px; }
+.auth-error { color: var(--error); font-size: 13px; margin-top: 16px; min-height: 20px; }
+.auth-switch { margin-top: 20px; }
 
 /* ========== HEADER ========== */
 #app-header {
@@ -1217,3 +1219,33 @@ body {
   .checklist-item input[type="checkbox"] { -webkit-appearance: checkbox; appearance: checkbox; }
   a[href]::after { content: ''; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   CONVITES
+   ═══════════════════════════════════════════════════════════ */
+
+.invites-header { margin-bottom: 24px; }
+.invites-header h2 { font-size: 20px; margin-bottom: 4px; }
+.invites-header .subtitle { color: var(--text-secondary); font-size: 13px; margin-bottom: 16px; }
+
+.invite-result {
+  background: var(--success-bg);
+  border: 1px solid var(--success);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 24px;
+}
+.invite-link-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary); }
+.invite-link-box { display: flex; gap: 8px; }
+.invite-link-box input { flex: 1; padding: 10px 12px; border: 2px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; background: var(--surface); color: var(--text); }
+.invite-link-box button { flex-shrink: 0; width: auto; }
+
+.invites-list h3 { font-size: 16px; margin-bottom: 12px; }
+.invites-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.invites-table th { text-align: left; padding: 8px; border-bottom: 2px solid var(--border); color: var(--text-secondary); font-weight: 600; }
+.invites-table td { padding: 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.invites-table code { font-size: 14px; font-weight: 600; color: var(--text); }
+.invites-table small { color: var(--text-tertiary); }
+.invites-table .btn { width: auto; padding: 4px 10px; font-size: 12px; margin: 0; }
+.invites-table .btn-danger:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.invite-pending { color: var(--warning); font-weight: 600; }

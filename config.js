@@ -21,9 +21,6 @@ if (errors.length) {
 }
 
 const INVITE_CODE = process.env.INVITE_CODE || '';
-if (!INVITE_CODE) {
-  console.warn('[aviso] INVITE_CODE não definido — o cadastro de novos usuários está DESATIVADO.');
-}
 
 module.exports = {
   JWT_SECRET,
