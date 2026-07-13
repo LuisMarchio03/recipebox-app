@@ -23,7 +23,7 @@ function moveRow(row, offset) {
 function addRow(containerId, value = '') {
   const container = document.getElementById(containerId);
   const isIngredient = containerId === 'ingredients-rows';
-  const isSection = !isIngredient && value.startsWith('# ');
+  const isSection = value.startsWith('# ');
 
   const row = document.createElement('div');
   row.className = 'item-row' + (isSection ? ' section-row' : '');
@@ -82,13 +82,17 @@ function collectRows(containerId) {
 
   return Array.from(document.querySelectorAll(`#${containerId} .item-row`))
     .map(row => {
+      if (row.classList.contains('section-row')) {
+        const val = row.querySelector('.item-input').value.trim();
+        return val ? `# ${val}` : '';
+      }
       const value = row.querySelector('.item-input').value.trim();
       if (!value) return '';
       if (isIngredient) {
         const quantity = row.querySelector('.item-qty').value.trim();
         return quantity ? `${quantity} | ${value}` : value;
       }
-      return row.classList.contains('section-row') ? `# ${value}` : value;
+      return value;
     })
     .filter(Boolean);
 }
