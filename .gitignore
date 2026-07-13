@@ -18,3 +18,5 @@ coverage/
 Thumbs.db
 .vscode/
 .idea/
+.vercel
+.env*
