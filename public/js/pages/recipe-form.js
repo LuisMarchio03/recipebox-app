@@ -128,6 +128,37 @@ async function handleImagePick(file) {
   }
 }
 
+function renderGroupSelector(groups, selectedId) {
+  const container = $('#group-selector');
+  const hidden = $('#r-group');
+
+  let html = `
+    <label class="group-option${!selectedId ? ' selected' : ''}" data-group-id="">
+      <span class="group-option-name">📝 Receita pessoal</span>
+      <span class="group-option-desc">Só você vê (a menos que marque como privada)</span>
+    </label>`;
+
+  for (const g of groups) {
+    const sel = g.id === selectedId;
+    html += `
+      <label class="group-option${sel ? ' selected' : ''}" data-group-id="${escapeHtml(g.id)}">
+        <span class="group-option-name">👥 ${escapeHtml(g.name)}</span>
+        <span class="group-option-desc">${g.member_count} membro${g.member_count !== 1 ? 's' : ''} · ${g.recipe_count} receita${g.recipe_count !== 1 ? 's' : ''}</span>
+      </label>`;
+  }
+
+  container.innerHTML = html;
+  hidden.value = selectedId || '';
+
+  container.querySelectorAll('.group-option').forEach(el => {
+    el.addEventListener('click', () => {
+      container.querySelectorAll('.group-option').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+      hidden.value = el.dataset.groupId;
+    });
+  });
+}
+
 /* ===== Tela ===== */
 
 export async function showRecipeForm({ id } = {}) {
@@ -176,11 +207,7 @@ export async function showRecipeForm({ id } = {}) {
   // Só depois de carregar os grupos dá para selecionar o grupo atual da receita.
   try {
     const groups = await API.getGroups();
-    const select = $('#r-group');
-    select.innerHTML =
-      '<option value="">Nenhum (receita pessoal)</option>' +
-      groups.map(g => `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name)}</option>`).join('');
-    select.value = recipe?.group_id || '';
+    renderGroupSelector(groups, recipe?.group_id || '');
   } catch {
     // Sem grupos carregados o formulário ainda funciona para receitas pessoais.
   }

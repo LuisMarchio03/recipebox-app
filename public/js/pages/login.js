@@ -34,15 +34,20 @@ export function showLogin() {
   $('#login-form').reset();
 }
 
-export function showRegister() {
+export function showRegister(params) {
   showAuthShell('page-register');
   $('#register-error').textContent = '';
   $('#register-form').reset();
 
-  const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
-  const token = params.get('token');
+  const token = params?.token;
+  const inviteInput = $('#reg-invite');
   if (token) {
-    $('#reg-invite').value = token;
+    inviteInput.value = token;
+    inviteInput.readOnly = true;
+    inviteInput.classList.add('invite-prefilled');
+  } else {
+    inviteInput.readOnly = false;
+    inviteInput.classList.remove('invite-prefilled');
   }
 }
 

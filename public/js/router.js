@@ -9,12 +9,17 @@ export function route(pattern, handler) {
 }
 
 function match(hash) {
-  const segments = hash.split('/').filter(Boolean);
+  const [pathPart] = hash.split('?');
+  const segments = pathPart.split('/').filter(Boolean);
+
+  const query = Object.fromEntries(
+    new URLSearchParams(hash.split('?')[1] || '')
+  );
 
   for (const { parts, handler, pattern } of routes) {
     if (parts.length !== segments.length) continue;
 
-    const params = {};
+    const params = { ...query };
     const ok = parts.every((part, i) => {
       if (part.startsWith(':')) {
         params[part.slice(1)] = decodeURIComponent(segments[i]);

@@ -28,7 +28,7 @@ const guard = handler => async params => {
 };
 
 route('login', showLogin);
-route('register', showRegister);
+route('register', params => showRegister(params));
 route('dashboard', guard(showDashboard));
 route('recipe/new', guard(showRecipeForm));
 route('recipe/edit/:id', guard(showRecipeForm));
