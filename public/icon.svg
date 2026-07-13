@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="RecipeBox">
+  <rect width="512" height="512" rx="96" fill="#E8652D"/>
+  <g fill="none" stroke="#FFF8F0" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M150 150h212a24 24 0 0 1 24 24v188a24 24 0 0 1-24 24H150a24 24 0 0 1-24-24V174a24 24 0 0 1 24-24z"/>
+    <path d="M186 150v236"/>
+    <path d="M228 216h116"/>
+    <path d="M228 268h116"/>
+    <path d="M228 320h74"/>
+  </g>
+  <circle cx="386" cy="150" r="46" fill="#F5A623"/>
+  <circle cx="386" cy="150" r="20" fill="#FFF8F0"/>
+</svg>

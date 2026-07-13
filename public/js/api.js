@@ -1,152 +1,173 @@
-const API = {
-  getToken() {
-    return localStorage.getItem('token');
-  },
+const TOKEN_KEY = 'token';
 
-  setToken(token) {
-    localStorage.setItem('token', token);
-  },
+/**
+ * O <img src> do navegador não envia o header Authorization, então as fotos
+ * protegidas são buscadas por fetch e viradas em object URL. O cache abaixo
+ * evita refazer o trabalho a cada re-render; o HTTP cache (ETag +
+ * Cache-Control) cuida das visitas seguintes.
+ */
+const imageCache = new Map();
+
+export const API = {
+  getToken: () => localStorage.getItem(TOKEN_KEY),
+  setToken: token => localStorage.setItem(TOKEN_KEY, token),
 
   clearToken() {
-    localStorage.removeItem('token');
+    localStorage.removeItem(TOKEN_KEY);
+    for (const url of imageCache.values()) URL.revokeObjectURL(url);
+    imageCache.clear();
   },
 
   async request(path, options = {}) {
-    const token = this.getToken();
     const headers = { ...options.headers };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
-    if (!(options.body instanceof FormData)) {
+    const token = API.getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    if (options.body && !(options.body instanceof FormData)) {
       headers['Content-Type'] = 'application/json';
     }
 
     const res = await fetch(path, { ...options, headers });
 
     if (res.status === 401) {
-      this.clearToken();
+      API.clearToken();
       window.location.hash = '#login';
-      throw new Error('Sessão expirada');
+      throw new Error('Sua sessão expirou. Entre novamente.');
     }
 
-    if (path.includes('/export/') && !path.includes('/import/')) {
+    if (options.raw) {
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Erro ao exportar' }));
-        throw new Error(err.error);
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Falha na requisição');
       }
       return res;
     }
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Erro na requisição');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Falha na requisição');
     return data;
   },
 
-  login(username, password) {
-    return this.request('/api/auth/login', {
+  /* ===== Autenticação ===== */
+
+  authConfig: () => API.request('/api/auth/config'),
+  getMe: () => API.request('/api/auth/me'),
+
+  login: (username, password) =>
+    API.request('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
-    });
-  },
+    }),
 
-  getMe() {
-    return this.request('/api/auth/me');
-  },
+  register: payload =>
+    API.request('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  /* ===== Receitas ===== */
 
   getRecipes(params = {}) {
-    const qs = new URLSearchParams(params).toString();
-    return this.request(`/api/recipes?${qs}`);
+    const clean = Object.fromEntries(Object.entries(params).filter(([, value]) => value));
+    const qs = new URLSearchParams(clean).toString();
+    return API.request(`/api/recipes${qs ? '?' + qs : ''}`);
   },
 
-  getRecipe(id) {
-    return this.request(`/api/recipes/${id}`);
-  },
+  getCategories: () => API.request('/api/recipes/categories'),
+  getRecipe: id => API.request(`/api/recipes/${id}`),
 
-  createRecipe(data) {
-    return this.request('/api/recipes', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
+  createRecipe: data =>
+    API.request('/api/recipes', { method: 'POST', body: JSON.stringify(data) }),
 
-  updateRecipe(id, data) {
-    return this.request(`/api/recipes/${id}`, {
+  updateRecipe: (id, data) =>
+    API.request(`/api/recipes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  deleteRecipe: id => API.request(`/api/recipes/${id}`, { method: 'DELETE' }),
+
+  /* ===== Fotos ===== */
+
+  uploadImage(id, { thumb, full }) {
+    invalidateImage(id);
+    return API.request(`/api/recipes/${id}/image`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ thumb, full }),
     });
   },
 
-  deleteRecipe(id) {
-    return this.request(`/api/recipes/${id}`, { method: 'DELETE' });
+  deleteImage(id) {
+    invalidateImage(id);
+    return API.request(`/api/recipes/${id}/image`, { method: 'DELETE' });
   },
 
-  getGroups() {
-    return this.request('/api/groups');
+  async loadImage(id, size = 'thumb') {
+    const key = `${id}:${size}`;
+    if (imageCache.has(key)) return imageCache.get(key);
+
+    const res = await API.request(`/api/recipes/${id}/image?size=${size}`, { raw: true });
+    const url = URL.createObjectURL(await res.blob());
+    imageCache.set(key, url);
+    return url;
   },
 
-  getGroup(id) {
-    return this.request(`/api/groups/${id}`);
-  },
+  /* ===== Grupos ===== */
 
-  createGroup(data) {
-    return this.request('/api/groups', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
+  getGroups: () => API.request('/api/groups'),
+  getGroup: id => API.request(`/api/groups/${id}`),
 
-  addMember(groupId, username) {
-    return this.request(`/api/groups/${groupId}/members`, {
+  createGroup: data =>
+    API.request('/api/groups', { method: 'POST', body: JSON.stringify(data) }),
+
+  addMember: (groupId, username) =>
+    API.request(`/api/groups/${groupId}/members`, {
       method: 'POST',
       body: JSON.stringify({ username }),
-    });
-  },
+    }),
 
-  removeMember(groupId, userId) {
-    return this.request(`/api/groups/${groupId}/members/${userId}`, {
-      method: 'DELETE',
-    });
-  },
+  removeMember: (groupId, userId) =>
+    API.request(`/api/groups/${groupId}/members/${userId}`, { method: 'DELETE' }),
 
-  async downloadExcel(params = {}) {
-    const qs = new URLSearchParams(params).toString();
-    const res = await this.request(`/api/export/excel?${qs}`);
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `receitas_${Date.now()}.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
-  },
+  /* ===== Importar / Exportar ===== */
 
-  async downloadWord(id) {
-    const res = await this.request(`/api/export/word/${id}`);
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `receita_${id}.docx`;
-    a.click();
-    URL.revokeObjectURL(url);
-  },
-
-  async downloadGroupWord(groupId) {
-    const res = await this.request(`/api/export/word/group/${groupId}`);
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `receitas_grupo_${groupId}.docx`;
-    a.click();
-    URL.revokeObjectURL(url);
-  },
-
-  async importExcel(file) {
+  importExcel(file, groupId) {
     const form = new FormData();
     form.append('file', file);
-    return this.request('/api/import/excel', {
-      method: 'POST',
-      body: form,
-    });
+    if (groupId) form.append('group_id', groupId);
+    return API.request('/api/import/excel', { method: 'POST', body: form });
   },
+
+  downloadExcel(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return download(`/api/export/excel${qs ? '?' + qs : ''}`);
+  },
+
+  downloadWord: id => download(`/api/export/word/${id}`),
+  downloadGroupWord: groupId => download(`/api/export/word/group/${groupId}`),
 };
+
+function invalidateImage(id) {
+  for (const size of ['thumb', 'full']) {
+    const key = `${id}:${size}`;
+    const url = imageCache.get(key);
+    if (url) URL.revokeObjectURL(url);
+    imageCache.delete(key);
+  }
+}
+
+/**
+ * Usa o nome de arquivo que o servidor mandou no Content-Disposition, para o
+ * download sair como "Bolo_de_Cenoura.docx" e não como um UUID opaco.
+ */
+async function download(path) {
+  const res = await API.request(path, { raw: true });
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const match = /filename=(?:"([^"]+)"|([^;]+))/i.exec(disposition);
+  const filename = (match?.[1] || match?.[2] || 'download').trim();
+
+  const url = URL.createObjectURL(await res.blob());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}

@@ -76,8 +76,8 @@ body {
 @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* ========== LOGIN ========== */
-#page-login {
+/* ========== LOGIN / CADASTRO ========== */
+.auth-page {
   display: none;
   align-items: center;
   justify-content: center;
@@ -85,9 +85,9 @@ body {
   padding: 20px;
   background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
 }
-#page-login.active { display: flex; animation: fadeIn 0.3s ease; }
+.auth-page.active { display: flex; animation: fadeIn 0.3s ease; }
 
-.login-container {
+.auth-container {
   background: var(--surface);
   border-radius: var(--radius);
   padding: 40px 32px;
@@ -97,12 +97,12 @@ body {
   text-align: center;
   animation: slideUp 0.4s ease;
 }
-.login-container .logo { font-size: 56px; margin-bottom: 4px; }
-.login-container h1 { font-size: 26px; color: var(--primary); margin-bottom: 2px; letter-spacing: -0.5px; }
-.login-container p.subtitle { color: var(--text-secondary); font-size: 14px; margin-bottom: 28px; }
-.login-container .field { margin-bottom: 14px; text-align: left; }
-.login-container .field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-.login-container input {
+.auth-container .logo { font-size: 56px; margin-bottom: 4px; }
+.auth-container h1 { font-size: 26px; color: var(--primary); margin-bottom: 2px; letter-spacing: -0.5px; }
+.auth-container p.subtitle { color: var(--text-secondary); font-size: 14px; margin-bottom: 28px; }
+.auth-container .field { margin-bottom: 14px; text-align: left; }
+.auth-container .field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.auth-container input {
   width: 100%;
   padding: 12px 16px;
   border: 2px solid var(--border);
@@ -113,8 +113,8 @@ body {
   background: var(--surface);
   color: var(--text);
 }
-.login-container input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--primary-light); }
-.login-container button {
+.auth-container input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--primary-light); }
+.auth-container button {
   width: 100%;
   padding: 13px;
   background: var(--primary);
@@ -127,10 +127,10 @@ body {
   transition: background var(--transition), transform var(--transition);
   margin-top: 6px;
 }
-.login-container button:hover { background: var(--primary-dark); transform: translateY(-1px); }
-.login-container button:active { transform: translateY(0); }
-.login-container button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-#login-error { color: var(--error); font-size: 13px; margin-top: 12px; min-height: 20px; }
+.auth-container button:hover { background: var(--primary-dark); transform: translateY(-1px); }
+.auth-container button:active { transform: translateY(0); }
+.auth-container button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.auth-error { color: var(--error); font-size: 13px; margin-top: 12px; min-height: 20px; }
 
 /* ========== HEADER ========== */
 #app-header {
@@ -863,11 +863,357 @@ body {
 }
 @media (max-width: 480px) {
   #page-content { padding: 12px; padding-bottom: calc(var(--nav-height) + 16px); }
-  .login-container { padding: 32px 20px; }
+  .auth-container { padding: 32px 20px; }
   .form-row { grid-template-columns: 1fr; }
   .recipe-detail h2 { font-size: 20px; }
   .recipe-detail .info-grid { grid-template-columns: repeat(2, 1fr); }
   #user-name { display: none; }
   .item-row .item-qty { width: 90px; }
   .item-row.section-row { padding: 4px 4px 4px 8px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ACESSIBILIDADE
+   ═══════════════════════════════════════════════════════════ */
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  z-index: 999;
+  padding: 12px 20px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 0 0 var(--radius-sm) 0;
+  text-decoration: none;
+}
+.skip-link:focus { left: 0; top: 0; }
+
+/* Foco visível em tudo que recebe teclado. O app antigo não tinha nenhum, o que
+   deixava a navegação por Tab literalmente invisível. */
+:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AUTENTICAÇÃO
+   ═══════════════════════════════════════════════════════════ */
+
+.auth-switch {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.link-button {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 4px;
+  text-decoration: underline;
+}
+.btn-block { width: 100%; }
+
+/* ═══════════════════════════════════════════════════════════
+   FILTROS
+   ═══════════════════════════════════════════════════════════ */
+
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.filter-bar select {
+  padding: 7px 10px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+}
+.filter-bar select:focus { border-color: var(--border-focus); }
+.result-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FOTOS
+   ═══════════════════════════════════════════════════════════ */
+
+.recipe-card { padding: 0; }
+.recipe-card .card-body { padding: 16px; }
+
+.card-photo {
+  height: 160px;
+  background: var(--border);
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.card-photo.loaded { opacity: 1; }
+
+.detail-photo {
+  width: 100%;
+  height: 220px;
+  border-radius: var(--radius);
+  background: var(--border);
+  background-size: cover;
+  background-position: center;
+  margin-bottom: 16px;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.detail-photo.loaded { opacity: 1; }
+
+.card-footer {
+  display: flex;
+  gap: 14px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.image-editor { display: flex; gap: 14px; align-items: flex-start; }
+.image-preview {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  border: 2px dashed var(--border);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.image-preview::after {
+  content: '📷';
+  font-size: 28px;
+  opacity: 0.3;
+}
+.image-preview.has-image { border-style: solid; }
+.image-preview.has-image::after { content: ''; }
+
+.image-controls { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.image-status { font-size: 12px; color: var(--text-tertiary); }
+.field-hint { display: block; margin-top: 6px; font-size: 12px; color: var(--text-tertiary); }
+
+/* ═══════════════════════════════════════════════════════════
+   MODO COZINHA
+   ═══════════════════════════════════════════════════════════ */
+
+.cooking-page.active {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--bg);
+  overflow-y: auto;
+  padding: 20px 20px 120px;
+  display: block;
+}
+
+.cook-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.cook-header h1 { font-size: 22px; color: var(--primary); line-height: 1.25; }
+.cook-hint { font-size: 12px; color: var(--text-tertiary); }
+
+.cook-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.cook-progress .progress-bar { flex: 1; }
+
+.cook-ingredients {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+.cook-ingredients summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+}
+.cook-ingredients ul { margin: 12px 0 0 20px; }
+.cook-ingredients li { font-size: 16px; margin-bottom: 6px; }
+
+.cook-section {
+  font-size: 18px;
+  color: var(--primary);
+  margin: 24px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--border);
+}
+
+.cook-step {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  transition: opacity var(--transition);
+}
+.cook-step.done { opacity: 0.45; }
+.cook-step.done .cook-step-text { text-decoration: line-through; }
+
+.cook-step-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+  cursor: pointer;
+}
+/* Alvos de toque grandes: quem está cozinhando mexe no celular de mão suja,
+   com pressa, às vezes de luva. */
+.cook-step-main input[type="checkbox"] {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+.cook-step-num {
+  font-weight: 700;
+  color: var(--primary);
+  font-size: 18px;
+  min-width: 22px;
+}
+.cook-step-text { font-size: 18px; line-height: 1.55; }
+
+.cook-timer-btn {
+  flex-shrink: 0;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: none;
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cook-timer-btn:hover { background: var(--primary); color: #fff; }
+
+.cook-timer {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 210;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--primary);
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: 999px;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.3s ease;
+}
+.cook-timer-label { font-size: 13px; opacity: 0.85; }
+.cook-timer-remaining {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 72px;
+  text-align: center;
+}
+.cook-timer .btn { background: rgba(255,255,255,0.2); color: #fff; border: none; }
+
+.btn-cook {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  padding: 14px;
+  margin: 18px 0;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: transform var(--transition), background var(--transition);
+}
+.btn-cook:hover { background: var(--primary-dark); transform: translateY(-2px); }
+.btn-cook small { font-size: 12px; font-weight: 400; opacity: 0.85; }
+
+.bottom-nav.immersive { display: none; }
+
+/* ═══════════════════════════════════════════════════════════
+   DIVERSOS
+   ═══════════════════════════════════════════════════════════ */
+
+.toolbar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.group-description { font-size: 13px; color: var(--text-tertiary); margin-top: 4px; }
+.checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.recipe-detail .description { color: var(--text-secondary); margin-bottom: 14px; }
+
+.group-card:focus-visible,
+.recipe-card:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+
+/* ═══════════════════════════════════════════════════════════
+   IMPRESSÃO — a receita na folha, sem o app em volta
+   ═══════════════════════════════════════════════════════════ */
+
+@media print {
+  #app-header,
+  .bottom-nav,
+  .fab,
+  .actions,
+  .cooking-tools,
+  .btn-cook,
+  .toast-container,
+  .skip-link { display: none !important; }
+
+  body { background: #fff; color: #000; }
+  #page-content { padding: 0; max-width: none; }
+  .recipe-detail { box-shadow: none; }
+  .detail-photo { height: 160px; }
+  .checklist-item { break-inside: avoid; }
+  .checklist-item input[type="checkbox"] { -webkit-appearance: checkbox; appearance: checkbox; }
+  a[href]::after { content: ''; }
 }

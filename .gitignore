@@ -1,4 +1,20 @@
 node_modules/
 .env
-data.db
+.env.local
+
+# Bancos SQLite locais
+*.db
 *.db-journal
+*.db-wal
+*.db-shm
+data*.db
+
+# Logs e saídas
+*.log
+coverage/
+
+# SO / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

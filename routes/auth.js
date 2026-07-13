@@ -1,57 +1,109 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { v4: uuidv4 } = require('uuid');
+
 const { db } = require('../db');
+const config = require('../config');
+const { authMiddleware } = require('../middleware/auth');
+const { asyncHandler } = require('../middleware/error');
+const { badRequest, unauthorized, notFound, forbidden } = require('../lib/http-error');
+const v = require('../lib/validate');
 
-const router = express.Router();
+/**
+ * Compara segredos sem vazar o conteúdo pelo tempo de resposta. Um `===` sai
+ * na primeira diferença, o que permite descobrir o código de convite
+ * caractere a caractere. O hash garante buffers do mesmo tamanho.
+ */
+function secretEquals(a, b) {
+  const ha = crypto.createHash('sha256').update(String(a)).digest();
+  const hb = crypto.createHash('sha256').update(String(b)).digest();
+  return crypto.timingSafeEqual(ha, hb);
+}
 
-router.post('/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
+function signToken(user) {
+  return jwt.sign(
+    { id: user.id, username: user.username, name: user.name },
+    config.JWT_SECRET,
+    { expiresIn: config.TOKEN_TTL }
+  );
+}
+
+module.exports = function authRoutes({ loginLimiter, registerLimiter }) {
+  const router = express.Router();
+
+  router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
+    const { username, password } = req.body || {};
     if (!username || !password) {
-      return res.status(400).json({ error: 'Usuário e senha obrigatórios' });
+      throw badRequest('Usuário e senha obrigatórios');
     }
 
     const result = await db.execute({
       sql: 'SELECT * FROM users WHERE username = ?',
-      args: [username],
+      args: [String(username)],
     });
 
-    if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Usuário ou senha inválidos' });
-    }
+    // Mesma mensagem para usuário inexistente e senha errada: distinguir os dois
+    // entrega ao atacante a lista de usuários válidos.
+    const invalid = unauthorized('Usuário ou senha inválidos');
 
+    if (result.rows.length === 0) throw invalid;
     const user = result.rows[0];
-    const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) {
-      return res.status(401).json({ error: 'Usuário ou senha inválidos' });
+    if (!(await bcrypt.compare(String(password), user.password_hash))) throw invalid;
+
+    res.json({
+      token: signToken(user),
+      user: { id: user.id, username: user.username, name: user.name },
+    });
+  }));
+
+  router.post('/register', registerLimiter, asyncHandler(async (req, res) => {
+    if (!config.INVITE_CODE) {
+      throw forbidden('O cadastro está desativado neste servidor');
     }
 
-    const token = jwt.sign(
-      { id: user.id, username: user.username, name: user.name },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const { invite_code: inviteCode } = req.body || {};
+    if (!inviteCode || !secretEquals(inviteCode, config.INVITE_CODE)) {
+      throw forbidden('Código de convite inválido');
+    }
 
-    res.json({ token, user: { id: user.id, username: user.username, name: user.name } });
-  } catch (err) {
-    res.status(500).json({ error: 'Erro interno do servidor' });
-  }
-});
+    const username = v.username(req.body.username);
+    const password = v.password(req.body.password);
+    const name = v.str(req.body.name, 'Nome', { required: true, max: 80 });
 
-router.get('/me', require('../middleware/auth').authMiddleware, async (req, res) => {
-  try {
+    const existing = await db.execute({
+      sql: 'SELECT 1 FROM users WHERE username = ?',
+      args: [username],
+    });
+    if (existing.rows.length > 0) {
+      throw badRequest('Este usuário já está em uso');
+    }
+
+    const id = uuidv4();
+    const hash = await bcrypt.hash(password, config.BCRYPT_ROUNDS);
+    await db.execute({
+      sql: 'INSERT INTO users (id, username, password_hash, name) VALUES (?, ?, ?, ?)',
+      args: [id, username, hash, name],
+    });
+
+    const user = { id, username, name };
+    res.status(201).json({ token: signToken(user), user });
+  }));
+
+  router.get('/me', authMiddleware, asyncHandler(async (req, res) => {
     const result = await db.execute({
       sql: 'SELECT id, username, name, created_at FROM users WHERE id = ?',
       args: [req.user.id],
     });
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Usuário não encontrado' });
-    }
+    if (result.rows.length === 0) throw notFound('Usuário não encontrado');
     res.json(result.rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: 'Erro interno do servidor' });
-  }
-});
+  }));
 
-module.exports = router;
+  /** O front usa isso para esconder o link de cadastro quando não há convites. */
+  router.get('/config', (req, res) => {
+    res.json({ registration_enabled: Boolean(config.INVITE_CODE) });
+  });
+
+  return router;
+};
