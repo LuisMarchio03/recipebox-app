@@ -41,7 +41,7 @@ export async function leaveCookingMode() {
 }
 
 function render(recipe) {
-  const ingredients = parseIngredients(recipe.ingredients);
+  const ingredientSections = parseIngredients(recipe.ingredients);
   const { sections, totalSteps } = parseInstructions(recipe.instructions);
   const progress = loadProgress(recipe.id);
   const done = countCheckedSteps(progress, totalSteps);
@@ -78,6 +78,19 @@ function render(recipe) {
     return header + body;
   }).join('');
 
+  const totalItems = ingredientSections.reduce((s, sec) => s + sec.items.length, 0);
+  const ingredientsHtml = ingredientSections.map(section => {
+    const header = section.title
+      ? `<li class="cook-ingredient-section">${escapeHtml(section.title)}</li>`
+      : '';
+    const items = section.items.map(item => `
+      <li>
+        ${item.quantity ? `<strong>${escapeHtml(item.quantity)}</strong> ` : ''}${escapeHtml(item.name)}
+      </li>
+    `).join('');
+    return header + items;
+  }).join('');
+
   $('#page-cooking').innerHTML = `
     <div class="cook-header">
       <button class="btn-icon" data-action="sair-cozinha" aria-label="Sair do modo cozinha">✕</button>
@@ -95,13 +108,9 @@ function render(recipe) {
     </div>
 
     <details class="cook-ingredients"${done === 0 ? ' open' : ''}>
-      <summary>📝 Ingredientes (${ingredients.length})</summary>
+      <summary>📝 Ingredientes (${totalItems})</summary>
       <ul>
-        ${ingredients.map(item => `
-          <li>
-            ${item.quantity ? `<strong>${escapeHtml(item.quantity)}</strong> ` : ''}${escapeHtml(item.name)}
-          </li>
-        `).join('')}
+        ${ingredientsHtml}
       </ul>
     </details>
 

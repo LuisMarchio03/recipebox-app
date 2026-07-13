@@ -39,11 +39,31 @@ export async function showRecipeDetail({ id }) {
 
 function render(container, recipe) {
   const isOwner = recipe.user_id === state.user.id;
-  const ingredients = parseIngredients(recipe.ingredients);
+  const ingredientSections = parseIngredients(recipe.ingredients);
   const { sections, totalSteps } = parseInstructions(recipe.instructions);
   const progress = loadProgress(recipe.id);
   const done = countCheckedSteps(progress, totalSteps);
   const pct = totalSteps ? Math.round((done / totalSteps) * 100) : 0;
+
+  let globalIdx = 0;
+  const ingredientsHtml = ingredientSections.map(section => {
+    const header = section.title
+      ? `<h3 class="checklist-section">${escapeHtml(section.title)}</h3>`
+      : '';
+    const items = section.items.map(item => {
+      const idx = globalIdx++;
+      const checked = progress[`ing-${idx}`];
+      return `
+        <label class="checklist-item${checked ? ' checked' : ''}">
+          <input type="checkbox" data-kind="ing" data-idx="${idx}"${checked ? ' checked' : ''}>
+          <span>
+            ${item.quantity ? `<span class="ing-qty">${escapeHtml(item.quantity)}</span> ` : ''}${escapeHtml(item.name)}
+          </span>
+        </label>
+      `;
+    }).join('');
+    return header + items;
+  }).join('');
 
   let stepNumber = 0;
   const instructionsHtml = sections.map(section => {
@@ -93,17 +113,7 @@ function render(container, recipe) {
 
     <h3 class="section-title">📝 Ingredientes</h3>
     <div class="checklist" data-checklist="ing">
-      ${ingredients.map((item, i) => {
-        const checked = progress[`ing-${i}`];
-        return `
-          <label class="checklist-item${checked ? ' checked' : ''}">
-            <input type="checkbox" data-kind="ing" data-idx="${i}"${checked ? ' checked' : ''}>
-            <span>
-              ${item.quantity ? `<span class="ing-qty">${escapeHtml(item.quantity)}</span> ` : ''}${escapeHtml(item.name)}
-            </span>
-          </label>
-        `;
-      }).join('')}
+      ${ingredientsHtml}
     </div>
 
     <h3 class="section-title">👩‍🍳 Modo de Preparo</h3>

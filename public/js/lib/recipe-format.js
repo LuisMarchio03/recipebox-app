@@ -9,16 +9,30 @@
  */
 
 export function parseIngredients(text) {
-  return String(text || '')
+  const lines = String(text || '')
     .split('\n')
     .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => {
+    .filter(Boolean);
+
+  const sections = [];
+  let current = { title: null, items: [] };
+
+  for (const line of lines) {
+    if (line.startsWith('# ')) {
+      if (current.title || current.items.length) sections.push(current);
+      current = { title: line.slice(2).trim(), items: [] };
+    } else {
       const sep = line.indexOf(' | ');
-      return sep > 0
-        ? { quantity: line.slice(0, sep).trim(), name: line.slice(sep + 3).trim() }
-        : { quantity: '', name: line };
-    });
+      current.items.push(
+        sep > 0
+          ? { quantity: line.slice(0, sep).trim(), name: line.slice(sep + 3).trim() }
+          : { quantity: '', name: line }
+      );
+    }
+  }
+  if (current.title || current.items.length) sections.push(current);
+
+  return sections;
 }
 
 /**

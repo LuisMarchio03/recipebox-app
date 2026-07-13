@@ -1073,6 +1073,18 @@ body {
 }
 .cook-ingredients ul { margin: 12px 0 0 20px; }
 .cook-ingredients li { font-size: 16px; margin-bottom: 6px; }
+.cook-ingredient-section {
+  list-style: none;
+  font-weight: 700;
+  color: var(--info);
+  margin-left: -20px;
+  font-size: 15px;
+  padding: 8px 0 2px;
+}
+.cook-ingredient-section::before {
+  content: '# ';
+  opacity: 0.6;
+}
 
 .cook-section {
   font-size: 18px;
