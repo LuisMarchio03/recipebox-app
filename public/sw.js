@@ -1,4 +1,4 @@
-const VERSION = 'v2';
+const VERSION = 'v3';
 const SHELL_CACHE = `recipebox-shell-${VERSION}`;
 const IMAGE_CACHE = `recipebox-images-${VERSION}`;
 
@@ -17,6 +17,7 @@ const SHELL = [
   '/js/lib/timer.js',
   '/js/lib/wake-lock.js',
   '/js/lib/recipe-format.js',
+  '/js/lib/aloy.js',
   '/js/pages/login.js',
   '/js/pages/dashboard.js',
   '/js/pages/recipe-detail.js',
