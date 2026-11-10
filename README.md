@@ -451,7 +451,7 @@ recipebox/
 ├── test/                  # 39 testes (node:test + supertest)
 └── public/                # o PWA — sem build step
     ├── index.html
-    ├── manifest.json · sw.js · icon.svg
+    ├── manifest.json · sw.js · icon.svg (PNGs por scripts/icons.sh)
     ├── css/style.css
     └── js/
         ├── main.js        # boot, rotas, ações
