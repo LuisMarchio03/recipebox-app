@@ -1,4 +1,4 @@
-const VERSION = 'v2';
+const VERSION = 'v4';
 const SHELL_CACHE = `recipebox-shell-${VERSION}`;
 const IMAGE_CACHE = `recipebox-images-${VERSION}`;
 
@@ -6,6 +6,7 @@ const SHELL = [
   '/',
   '/index.html',
   '/icon.svg',
+  '/apple-touch-icon.png',
   '/manifest.json',
   '/css/style.css',
   '/js/main.js',
