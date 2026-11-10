@@ -3,6 +3,7 @@ import { state, loadProgress, saveProgress, clearProgress } from '../state.js';
 import { showPage, navigate } from '../router.js';
 import { escapeHtml, toast, skeletonCards, confirmDelete, difficultyStars, formatMinutes } from '../ui.js';
 import { parseIngredients, parseInstructions, countCheckedSteps } from '../lib/recipe-format.js';
+import { aloyLink, hasAloy } from '../lib/aloy.js';
 
 const $ = selector => document.querySelector(selector);
 
@@ -109,6 +110,12 @@ function render(container, recipe) {
         👩‍🍳 Modo Cozinha
         <small>Tela sempre acesa, passos grandes e cronômetro</small>
       </button>
+      ${hasAloy() ? `
+        <a class="btn btn-cook btn-aloy" href="${escapeHtml(aloyLink(recipe.title))}">
+          🎙️ Cozinhar com a ALOY
+          <small>Ela conduz os passos por voz</small>
+        </a>
+      ` : ''}
     ` : ''}
 
     <h3 class="section-title">📝 Ingredientes</h3>

@@ -1213,6 +1213,8 @@ body {
 }
 .btn-cook:hover { background: var(--primary-dark); transform: translateY(-2px); }
 .btn-cook small { font-size: 12px; font-weight: 400; opacity: 0.85; }
+.btn-aloy { margin-top: -12px; background: #0a0d12; }
+.btn-aloy:hover { background: #0a0d12; }
 
 .bottom-nav.immersive { display: none; }
 
